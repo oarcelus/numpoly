@@ -114,7 +114,8 @@ def call(
             parameters[name].shape == parameters[poly.names[0]].shape
             for name in poly.names
         )
-        if allshape:
+        alldim = all(parameters[name].ndim == 1 for name in poly.names)
+        if poly.ndim == 1 and (allshape and alldim):
             out = numpoly.ccall(
                 poly.exponents, poly.coefficients, ones, parameters, shape
             )
