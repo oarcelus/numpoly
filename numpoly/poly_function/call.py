@@ -1,14 +1,36 @@
 """Evaluate polynomial by inserting new values in to the indeterminants."""
+
 from __future__ import annotations
-from typing import Dict, Sequence, Optional, Union
+from typing import Dict, Sequence, Optional, Union, List
 import logging
 
 import numpy
 import numpoly
 
 from ..baseclass import ndpoly, PolyLike
+import cProfile
+import io
+import pstats
+import time
 
 
+def profile(func):
+    def wrapper(*args, **kwargs):
+        profiler = cProfile.Profile()
+        profiler.enable()
+        result = func(*args, **kwargs)
+        profiler.disable()
+
+        stream = io.StringIO()
+        stats = pstats.Stats(profiler, stream=stream).sort_stats("cumtime")
+        stats.print_stats()
+        print(stream.getvalue())
+        return result
+
+    return wrapper
+
+
+# @profile
 def call(
     poly: PolyLike,
     args: Sequence[Optional[PolyLike]] = (),
@@ -86,6 +108,24 @@ def call(
     logger.debug("parameter common shape: %s", ones.shape)
     logger.debug("output shape: %s", shape)
     # main loop:
+    allnumpy = all(type(parameters[name]) is numpy.ndarray for name in poly.names)
+    if allnumpy:
+        allshape = all(
+            parameters[name].shape == parameters[poly.names[0]].shape
+            for name in poly.names
+        )
+        if allshape:
+            out = numpoly.ccall(
+                poly.exponents, poly.coefficients, ones, parameters, shape
+            )
+            if isinstance(out, numpoly.ndpoly):
+                if out.isconstant():
+                    out = out.tonumpy()
+                else:
+                    out, _ = numpoly.align_indeterminants(out, poly.indeterminants)
+
+            return out
+
     out = numpy.zeros((), dtype=int)
     for exponent, coefficient in zip(poly.exponents, poly.coefficients):
         term = ones
