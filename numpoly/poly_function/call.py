@@ -114,7 +114,7 @@ def call(
             parameters[name].shape == parameters[poly.names[0]].shape
             for name in poly.names
         )
-        if allshape:
+        if allshape and poly.ndim >= 1:
             out = numpoly.ccall(poly, ones, parameters, shape)
             if isinstance(out, numpoly.ndpoly):
                 if out.isconstant():
