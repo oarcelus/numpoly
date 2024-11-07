@@ -224,28 +224,32 @@ cdef void ccall_complex(
 
 
 def ccall(
-        np.ndarray[np.uint32_t, ndim=2] expons, 
-        List[np.ndarray] coefficients, 
+        np.ndarray poly, 
         np.ndarray ones, 
         Dict[str, np.ndarray] parameters, 
         shape,
 ):
-    result_type = np.result_type(next(iter(parameters.values())).dtype, coefficients[0].dtype)   
+    result_type = np.result_type(next(iter(parameters.values())).dtype, poly.coefficients[0].dtype)   
+    
+    ones_flat = np.prod((<object> ones).shape) 
+    poly_flat = np.prod((<object> poly).shape) 
 
-    out = np.zeros(shape, dtype=result_type)
-    ones = ones.astype(result_type)
+    out = np.zeros((poly_flat, ones_flat), dtype=result_type)
+    ones = ones.ravel().astype(result_type)
     params = np.asarray(list(parameters.values()), dtype=result_type)
-    coeffs = np.asarray(coefficients, dtype=result_type)
+    params = params.reshape(params.shape[0], ones_flat)
+    coeffs = np.asarray(poly.coefficients, dtype=result_type)
+    coeffs = coeffs.reshape(coeffs.shape[0], poly_flat)
 
     if result_type == bool:
-        ccall_int(expons, coeffs, out, ones, params)
+        ccall_int(poly.exponents, coeffs, out, ones, params)
     elif result_type == np.uint32:
-        ccall_uint32(expons, coeffs, out, ones, params)
+        ccall_uint32(poly.exponents, coeffs, out, ones, params)
     elif result_type == np.int64:
-        ccall_int(expons, coeffs, out, ones, params)
+        ccall_int(poly.exponents, coeffs, out, ones, params)
     elif result_type == np.float64:
-        ccall_float(expons, coeffs, out, ones, params)
+        ccall_float(poly.exponents, coeffs, out, ones, params)
     elif result_type == np.complex128:
-        ccall_complex(expons, coeffs, out, ones, params)
+        ccall_complex(poly.exponents, coeffs, out, ones, params)
 
-    return out
+    return out.reshape(shape)

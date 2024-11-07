@@ -114,11 +114,8 @@ def call(
             parameters[name].shape == parameters[poly.names[0]].shape
             for name in poly.names
         )
-        alldim = all(parameters[name].ndim == 1 for name in poly.names)
-        if poly.ndim == 1 and (allshape and alldim):
-            out = numpoly.ccall(
-                poly.exponents, poly.coefficients, ones, parameters, shape
-            )
+        if allshape:
+            out = numpoly.ccall(poly, ones, parameters, shape)
             if isinstance(out, numpoly.ndpoly):
                 if out.isconstant():
                     out = out.tonumpy()
@@ -132,6 +129,7 @@ def call(
         term = ones
         for power, name in zip(exponent, poly.names):
             term = term * parameters[name] ** power
+
         if isinstance(term, numpoly.ndpoly):
             tmp = numpoly.outer(coefficient, term)
         else:
